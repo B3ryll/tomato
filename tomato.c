@@ -1,13 +1,10 @@
-// ====================================================
+// ================================================================
 //  my simple tomato pomodoro timer 
 //
-//   
 //  tasks:
-//      - [ ] Write the logic of pomodoro modes
-//      - [ ] Write an interface for this program 
-//      - [ ] Write Makefile
+//      - [ ] Write a proper documentation
 //
-// ====================================================
+// ================================================================
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,33 +19,67 @@
 // base definitions
 // ----------------------------------------------
 
-struct Command {
-    char* command;
-    unsigned int mode;
-    int persist;
-};
+extern char** environ;
 
-enum TimerMode {
+// timer defs
+
+enum TimerMode
+{
     TimerFocusMode,
     TimerRestMode,
     TimerLongRestMode,
     
     TIMER_MODE_SIZE, 
-}
+};
 
-extern char** environ;
+enum TimerState
+{
+    TimerStateInactive,
+    TimerStateRunning,
+    TimerStatePaused,
 
-struct TimeFormat {
+    TIMER_STATE_SIZE,
+};
+
+enum Keybind
+{
+    KeybindContinue,
+    KeybindReset,
+    KeybindQuit,
+
+    KEYBIND_SIZE,
+};
+
+struct TimeFormat
+{
     unsigned short int seconds;
     unsigned short int minutes;
     unsigned short int hours;
 };
 typedef struct TimeFormat TimeFormat;
 
+struct TimerIteration
+{
+    char        mode;
+    TimeFormat  interval;
+};
+typedef struct TimerIteration TimerIteration;
+
+struct Timer {
+    char      state;
+    short int iter_index;
+    int       time_left_secs;
+};
+typedef struct Timer Timer;
+
 // ----------------------------------------------
 
 #include "config.h"
 
+// ----------------------------------------------
+
+const size_t iter_size = sizeof(iterations)/sizeof(iterations[0]);
+    
 // ----------------------------------------------
 // process spawn utility
 // ----------------------------------------------
@@ -90,33 +121,153 @@ void timeformat_print(TimeFormat time)
 // program execution loop functions
 // ----------------------------------------------
 
+// ---- state management -----
+
+void timer_update(int delta, Timer* state)
+{
+    if (state->state != TimerStateRunning) return;
+
+    if (state->time_left_secs > 0)
+    {
+        state->time_left_secs--;
+        return;
+    }
+
+    state->iter_index     = (state->iter_index + 1) % iter_size;
+    state->time_left_secs = SECONDS(iterations[state->iter_index].interval);
+
+    state->state = TimerStateInactive;
+}
+
+void timer_print(Timer timer)
+{ 
+    TimerIteration current_iter = iterations[timer.iter_index];
+    
+    const char* mode_str  = timer_symbols[current_iter.mode];
+    const char* state_str = timer_state_symbols[timer.state];
+    
+    TimeFormat timeform = timeformat_from_seconds(timer.time_left_secs);
+    
+    printw(
+        "%d : %d : %d [%s] - %s",
+        timeform.hours, timeform.minutes, timeform.seconds,
+        state_str,      mode_str 
+    );
+}
+
+// ---------------------------
+
+void handle_input(Timer* timer, char* is_running)
+{
+    int ch = getch();
+
+    if (ch == keybindings[KeybindQuit])
+    {
+        *is_running = FALSE;
+    }
+    else if (ch == keybindings[KeybindReset])
+    {
+        timer->state          = TimerStateInactive;
+        timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
+    }
+    else if (ch == keybindings[KeybindContinue])
+    {
+        char is_running = timer->state == TimerStateRunning;
+        timer->state    = is_running ? TimerStatePaused : TimerStateRunning;
+
+        if (timer->state == TimerStatePaused)
+        {
+            char* cmd[] = {shell, "-c", pause_cmd, NULL};
+            spawn(cmd);
+        } else {
+            char* cmd[] = {shell, "-c", start_cmd, NULL};
+            spawn(cmd);
+        }
+
+    }
+}
+
+void init_curses()
+{
+    initscr();
+    cbreak();
+    noecho();
+
+    intrflush(stdscr, FALSE);
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
+
+    curs_set(0);
+}
+
+typedef struct {
+    const Timer* timer;
+} RenderCtx;
+
+// -----------------------
+// render function
+// -----------------------
+void render(RenderCtx ctx)
+{
+    for (int counter = 0; counter < TIMER_MODE_SIZE; counter++)
+    {
+        const char is_current     = iterations[ctx.timer->iter_index].mode == counter;
+        const char sign           = is_current ? '>' : '.';
+        const TimeFormat interval = iterations[counter].interval;
+
+        printw(" %c %-12s [%d:%d:%d]\n", sign, timer_symbols[counter],
+                interval.hours, interval.minutes, interval.seconds);
+    }
+
+    move(LINES - 2, 1);
+
+    timer_print(*ctx.timer);
+
+    const char next_index   = (ctx.timer->iter_index + 1) % iter_size;
+    const char* next_symbol = timer_symbols[iterations[next_index].mode];
+    printw("  {next: %s}", next_symbol);
+}
+
 void run(short int *err)
 {
-    TimeFormat counter = {
-        .seconds = 5,
-        .minutes = 0,
-        .hours   = 0,
-    };
+    Timer counter;
+    RenderCtx render_ctx = {.timer = &counter};
 
-    const int trigger = SECONDS(counter) + 1;
-    int elapsed_seconds = 0;
+    const int UPDATE_COUNTER_MAX = 4;
+    int update_counter           = 0;
 
-    initscr();
-    curs_set(0);
+    init_curses();
 
+    char is_running = TRUE;
     do
     {
-        elapsed_seconds++;
+        handle_input(&counter, &is_running);
+        const char curr_iter = counter.iter_index;
 
-        counter = timeformat_from_seconds(elapsed_seconds);
-        timeformat_print(counter);
+        update_counter++;
+
+        if (update_counter >= 4)
+        {
+            timer_update(1000, &counter);
+            update_counter = 0;
+        }
+
+        render(render_ctx);
+
+        if (curr_iter != counter.iter_index)
+        {
+            char* cmd[] = {
+                shell, "-c", mode_change_cmd, NULL
+            };
+            spawn(cmd);
+        }
 
         refresh();
         erase();
 
-        napms(1000);
+        napms(250);
 
-    } while (elapsed_seconds < trigger);
+    } while (is_running);
 
     endwin();
 }
@@ -130,11 +281,7 @@ int main()
     {
         /* @todo: handle exception condition */
     } else {
-        printf("blob");
-
-        // dnote -loc 2 -exp 1.3
-        char* command[] = {shell, "-c", "echo hello world | dnote -loc 2 -exp 1.3", NULL}; 
-        spawn(command);
+        printf("blob :3\n");
     }
 
     return 0;
