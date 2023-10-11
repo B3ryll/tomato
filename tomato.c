@@ -230,8 +230,12 @@ void render(RenderCtx ctx)
 
 void run(short int *err)
 {
-    Timer counter;
+    Timer counter = {
+        .time_left_secs = SECONDS(iterations[0].interval),
+    };
+
     RenderCtx render_ctx = {.timer = &counter};
+
 
     const int UPDATE_COUNTER_MAX = 4;
     int update_counter           = 0;
