@@ -119,7 +119,7 @@ TimeFormat timeformat_from_seconds(const int total_seconds)
 
 inline void timeformat_print(TimeFormat time)
 {
-    printw("\e\r %d : %d : %d", time.hours, time.minutes, time.seconds);
+    printw("\e\r %02d : %02d : %02d", time.hours, time.minutes, time.seconds);
 }
 
 // ----------------------------------------------
@@ -154,7 +154,7 @@ void timer_print(Timer timer)
     TimeFormat timeform = timeformat_from_seconds(timer.time_left_secs);
     
     printw(
-        "%d : %d : %d [%s] - %s",
+        "%02d : %02d : %02d [%s] - %s",
         timeform.hours, timeform.minutes, timeform.seconds,
         state_str,      mode_str 
     );
@@ -232,7 +232,7 @@ void render(RenderCtx ctx)
         const char sign           = is_current ? '>' : '.';
         const TimeFormat interval = iterations[counter].interval;
 
-        printw(" %c %-12s [%d:%d:%d]\n", sign, timer_symbols[counter],
+        printw(" %c %-12s [%02d:%02d:%02d]\n", sign, timer_symbols[counter],
                 interval.hours, interval.minutes, interval.seconds);
     }
 
@@ -302,7 +302,7 @@ int main()
     {
         /* @todo: handle exception condition */
     } else {
-        printf("blob :3\n");
+        printf("bie :3\n");
     }
 
     return 0;
