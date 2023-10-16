@@ -49,6 +49,8 @@ enum Keybind
     KeybindContinue,
     KeybindReset,
     KeybindQuit,
+    KeybindNext,
+    KeybindPrevious,
 
     KEYBIND_SIZE,
 };
@@ -115,7 +117,7 @@ TimeFormat timeformat_from_seconds(const int total_seconds)
     return out;
 }
 
-void timeformat_print(TimeFormat time)
+inline void timeformat_print(TimeFormat time)
 {
     printw("\e\r %d : %d : %d", time.hours, time.minutes, time.seconds);
 }
@@ -173,10 +175,22 @@ void handle_input(Timer* timer, char* is_running)
         timer->state          = TimerStateInactive;
         timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
     }
+    else if (ch == keybindings[KeybindNext])
+    {
+        timer->state          = TimerStateInactive;
+        timer->iter_index     = (timer->iter_index + 1) % iter_size;
+        timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
+    }
+    else if (ch == keybindings[KeybindPrevious])
+    {
+        timer->state          = TimerStateInactive;
+        timer->iter_index     = (timer->iter_index - 1) % iter_size;
+        timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
+    }
     else if (ch == keybindings[KeybindContinue])
     {
-        char is_running = timer->state == TimerStateRunning;
-        timer->state    = is_running ? TimerStatePaused : TimerStateRunning;
+        char is_active = timer->state == TimerStateRunning;
+        timer->state   = is_active ? TimerStatePaused : TimerStateRunning;
 
         if (timer->state == TimerStatePaused)
         {

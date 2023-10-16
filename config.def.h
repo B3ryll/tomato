@@ -28,6 +28,9 @@ const int keybindings[] = {
     [KeybindContinue] = 'c',
     [KeybindReset]    = 'r',
     [KeybindQuit]     = 'q',
+
+    [KeybindNext]     = 'b',
+    [KeybindPrevious] = 'p',
 };
 
 #define FOCUS_MODE    {TimerFocusMode,    {.seconds = 10, .minutes = 0, .hours = 0}}
