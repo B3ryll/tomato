@@ -49,6 +49,8 @@ enum Keybind
     KeybindContinue,
     KeybindReset,
     KeybindQuit,
+    KeybindNext,
+    KeybindPrevious,
 
     KEYBIND_SIZE,
 };
@@ -115,9 +117,9 @@ TimeFormat timeformat_from_seconds(const int total_seconds)
     return out;
 }
 
-void timeformat_print(TimeFormat time)
+inline void timeformat_print(TimeFormat time)
 {
-    printw("\e\r %d : %d : %d", time.hours, time.minutes, time.seconds);
+    printw("\e\r %02d : %02d : %02d", time.hours, time.minutes, time.seconds);
 }
 
 // ----------------------------------------------
@@ -152,7 +154,7 @@ void timer_print(Timer timer)
     TimeFormat timeform = timeformat_from_seconds(timer.time_left_secs);
     
     printw(
-        "%d : %d : %d [%s] - %s",
+        "%02d : %02d : %02d [%s] - %s",
         timeform.hours, timeform.minutes, timeform.seconds,
         state_str,      mode_str 
     );
@@ -173,10 +175,22 @@ void handle_input(Timer* timer, char* is_running)
         timer->state          = TimerStateInactive;
         timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
     }
+    else if (ch == keybindings[KeybindNext])
+    {
+        timer->state          = TimerStateInactive;
+        timer->iter_index     = (timer->iter_index + 1) % iter_size;
+        timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
+    }
+    else if (ch == keybindings[KeybindPrevious])
+    {
+        timer->state          = TimerStateInactive;
+        timer->iter_index     = (timer->iter_index - 1) % iter_size;
+        timer->time_left_secs = SECONDS(iterations[timer->iter_index].interval);
+    }
     else if (ch == keybindings[KeybindContinue])
     {
-        char is_running = timer->state == TimerStateRunning;
-        timer->state    = is_running ? TimerStatePaused : TimerStateRunning;
+        char is_active = timer->state == TimerStateRunning;
+        timer->state   = is_active ? TimerStatePaused : TimerStateRunning;
 
         if (timer->state == TimerStatePaused)
         {
@@ -218,7 +232,7 @@ void render(RenderCtx ctx)
         const char sign           = is_current ? '>' : '.';
         const TimeFormat interval = iterations[counter].interval;
 
-        printw(" %c %-12s [%d:%d:%d]\n", sign, timer_symbols[counter],
+        printw(" %c %-12s [%02d:%02d:%02d]\n", sign, timer_symbols[counter],
                 interval.hours, interval.minutes, interval.seconds);
     }
 
@@ -288,7 +302,7 @@ int main()
     {
         /* @todo: handle exception condition */
     } else {
-        printf("blob :3\n");
+        printf("bie :3\n");
     }
 
     return 0;

@@ -1,6 +1,9 @@
 / ------------------------------------------------------ /
 
 - [x] Write a proper documentation
-- [ ] Fix the formatting of the time
+- [x] Fix the formatting of the time
 
+- [x] Add "next" keybinding function
+- [x] Add "previous" keybinding function
+ 
 / ------------------------------------------------------ /
