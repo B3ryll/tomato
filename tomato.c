@@ -1,8 +1,11 @@
 // ================================================================
-//  my simple tomato pomodoro timer 
-//
-//  tasks:
-//      - [ ] Write a proper documentation
+//  ./tomato.c
+//  
+//  I created this program as a personal tool to assist me in managing my
+//  programming time more efficiently. Similar to the standard software
+//  available on suckless.org, this program is configured by a header that must
+//  be modified at compile time, which is the "config.h" file. Users can adapt
+//  it to their preferences to personalize the experience.
 //
 // ================================================================
 

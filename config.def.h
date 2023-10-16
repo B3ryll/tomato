@@ -1,10 +1,13 @@
 // ====================================================
-//   tomato configuration file
+//   ./config.def.h (./config.h)
 // 
+//  File with the default user settings 
+//
 // ====================================================
 
 char shell[] = "/home/terminal/usr/local/bin/oksh";
 
+// callback commands
 char* mode_change_cmd = "echo mode changed | dnote -loc 2 -exp 1.3;";
 char* pause_cmd       = "echo mode paused  | dnote -loc 2 -exp 1.3;";
 char* start_cmd       = "echo node started | dnote -loc 2 -exp 1.3;";
